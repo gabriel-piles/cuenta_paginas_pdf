@@ -1,0 +1,9 @@
+[project]
+name = "cuenta-paginas-pdf"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "pyinstaller>=6.22.2",
+    "pypdf>=6.18.0",
+    "pyqt6>=6.11.0",
+]
