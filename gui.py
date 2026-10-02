@@ -19,10 +19,34 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from pdf_worker import PdfCountRunnable, WorkerSignals, a3_sheets, find_pdfs
+from pdf_worker import PdfCountRunnable, WorkerSignals, a3_sheets, explorer_key, find_pdfs
 
-COL_FILE, COL_PAGES, COL_A3, COL_STATUS = 0, 1, 2, 3
+COL_FILE, COL_PAGES, COL_A3, COL_FOTOCOPIAS, COL_STATUS = 0, 1, 2, 3, 4
 _SUM_SENTINEL = "__TOTAL__"  # UserRole marker for the sum row
+
+
+def fotocopias(sheets: int) -> int:
+    """Photocopies for a file: A3 sheets x 4."""
+    return sheets * 4
+
+
+# Filename column sorts like Windows Explorer (same key as find_pdfs).
+class _NameItem(QTableWidgetItem):
+    def __lt__(self, other: QTableWidgetItem) -> bool:
+        try:
+            return explorer_key(self.text()) < explorer_key(other.text())
+        except Exception:
+            return super().__lt__(other)
+
+
+# Numeric sorting for the count columns (via EditRole data comparison).
+class _NumericItem(QTableWidgetItem):
+    def __lt__(self, other: QTableWidgetItem) -> bool:
+        a = self.data(Qt.ItemDataRole.EditRole)
+        b = other.data(Qt.ItemDataRole.EditRole)
+        if isinstance(a, int) and isinstance(b, int):
+            return a < b
+        return super().__lt__(other)
 
 
 class MainWindow(QMainWindow):
@@ -51,20 +75,11 @@ class MainWindow(QMainWindow):
         header.addWidget(self.select_btn)
         header.addWidget(self.path_field, stretch=1)
 
-        # Numeric sorting for the count columns (via EditRole data comparison).
-        class _NumericItem(QTableWidgetItem):
-            def __lt__(self, other: QTableWidgetItem) -> bool:
-                a = self.data(Qt.ItemDataRole.EditRole)
-                b = other.data(Qt.ItemDataRole.EditRole)
-                if isinstance(a, int) and isinstance(b, int):
-                    return a < b
-                return super().__lt__(other)
-
         # --- Main: results table ---
-        self.table = QTableWidget(0, 4)
+        self.table = QTableWidget(0, 5)
         self.table.setItemPrototype(_NumericItem(""))
         self.table.setHorizontalHeaderLabels(
-            ["Nombre de Archivo", "Nº Páginas", "Hojas A3", "Estado / Error"]
+            ["Nombre de Archivo", "Nº Páginas", "Hojas A3", "N. Fotocopias", "Estado / Error"]
         )
         self.table.setSortingEnabled(True)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -73,6 +88,7 @@ class MainWindow(QMainWindow):
         header_view.setSectionResizeMode(COL_FILE, header_view.ResizeMode.ResizeToContents)
         header_view.setSectionResizeMode(COL_PAGES, header_view.ResizeMode.ResizeToContents)
         header_view.setSectionResizeMode(COL_A3, header_view.ResizeMode.ResizeToContents)
+        header_view.setSectionResizeMode(COL_FOTOCOPIAS, header_view.ResizeMode.ResizeToContents)
         header_view.setSectionResizeMode(COL_STATUS, header_view.ResizeMode.Stretch)
         header_view.setStretchLastSection(True)
 
@@ -117,7 +133,7 @@ class MainWindow(QMainWindow):
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(pdfs) + 1)  # last row is the sum row
         for i, p in enumerate(pdfs):
-            name_item = QTableWidgetItem(p.name)
+            name_item = _NameItem(p.name)
             name_item.setData(Qt.ItemDataRole.UserRole, str(p))  # full path, sort-safe
             pages_item = QTableWidgetItem("…")
             pages_item.setData(Qt.ItemDataRole.UserRole, -1)
@@ -130,10 +146,17 @@ class MainWindow(QMainWindow):
             a3_item.setTextAlignment(
                 Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
             )
+            # "…" sorts before any number via numeric sort key below.
+            foto_item = QTableWidgetItem("…")
+            foto_item.setData(Qt.ItemDataRole.EditRole, -1)  # numeric sort key
+            foto_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            )
             status_item = QTableWidgetItem("Pending…")
             self.table.setItem(i, COL_FILE, name_item)
             self.table.setItem(i, COL_PAGES, pages_item)
             self.table.setItem(i, COL_A3, a3_item)
+            self.table.setItem(i, COL_FOTOCOPIAS, foto_item)
             self.table.setItem(i, COL_STATUS, status_item)
         self._set_sum_row(0, 0)
         self._update_totals(len(pdfs), 0, 0)
@@ -199,6 +222,16 @@ class MainWindow(QMainWindow):
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
         )
         sheets_item.setFont(bold)
+        foto_item = self.table.item(row, COL_FOTOCOPIAS)
+        if foto_item is None:
+            foto_item = QTableWidgetItem()
+            self.table.setItem(row, COL_FOTOCOPIAS, foto_item)
+        foto_item.setText(str(sheets * 4))
+        foto_item.setData(Qt.ItemDataRole.EditRole, sheets * 4)
+        foto_item.setTextAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
+        foto_item.setFont(bold)
         status_item = self.table.item(row, COL_STATUS)
         if status_item is None:
             status_item = QTableWidgetItem()
@@ -216,14 +249,20 @@ class MainWindow(QMainWindow):
             pages_item.setData(Qt.ItemDataRole.EditRole, pages)  # numeric sort key
         a3_item = self.table.item(row, COL_A3)
         if a3_item is not None:
-            a3_item.setText(str(a3_sheets(pages)) if pages >= 0 else "—")
-            a3_item.setData(Qt.ItemDataRole.EditRole, a3_sheets(pages) if pages >= 0 else -1)
+            sheets = a3_sheets(pages) if pages >= 0 else -1
+            a3_item.setText(str(sheets) if sheets >= 0 else "—")
+            a3_item.setData(Qt.ItemDataRole.EditRole, sheets)
+        foto_item = self.table.item(row, COL_FOTOCOPIAS)
+        if foto_item is not None:
+            f = fotocopias(sheets) if sheets >= 0 else -1
+            foto_item.setText(str(f) if f >= 0 else "—")
+            foto_item.setData(Qt.ItemDataRole.EditRole, f)
         status_item = self.table.item(row, COL_STATUS)
         if status_item is not None:
             status_item.setText(status)
         if pages > 0:
             self._total_pages += pages
-            self._total_sheets += a3_sheets(pages)
+            self._total_sheets += sheets
         self._pending -= 1
         self._update_totals(self.table.rowCount() - 1, self._total_pages, self._total_sheets)
         if self.table.isSortingEnabled():

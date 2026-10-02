@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
@@ -30,7 +31,24 @@ def find_pdfs(folder: str | os.PathLike) -> list[Path]:
             ]
     except OSError:
         return []
-    return sorted(paths, key=lambda p: p.name.lower())
+    return sorted(paths, key=lambda p: explorer_key(p.name))
+
+
+def explorer_key(name: str) -> list:
+    """Sort key approximating Windows Explorer (StrCmpLogicalW) order.
+
+    Case-insensitive; runs of digits compare numerically ("a10.pdf" after
+    "a2.pdf"); separators like '.', '_', '-', ' ' sort before alphanumerics.
+    """
+    name = name.lower()
+    key: list = []
+    for i, chunk in enumerate(re.split(r"(\d+)", name)):
+        if i % 2:  # digit run: text part is "" so it sorts before digits in text
+            key.append(("", int(chunk)))
+        else:
+            # bias separators before alphanumerics, matching Explorer order
+            key.append(tuple(c if c.isalnum() else " ." for c in chunk))
+    return key
 
 
 def count_pages_sync(path: str | os.PathLike) -> tuple[int | None, str]:
