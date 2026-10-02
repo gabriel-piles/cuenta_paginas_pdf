@@ -24,11 +24,7 @@ def find_pdfs(folder: str | os.PathLike) -> list[Path]:
         return []
     try:
         with os.scandir(root) as it:
-            paths = [
-                Path(entry.path)
-                for entry in it
-                if entry.is_file() and entry.name.lower().endswith(".pdf")
-            ]
+            paths = [Path(entry.path) for entry in it if entry.is_file() and entry.name.lower().endswith(".pdf")]
     except OSError:
         return []
     return sorted(paths, key=lambda p: explorer_key(p.name))
@@ -99,6 +95,4 @@ class PdfCountRunnable(QRunnable):
 
     def run(self) -> None:
         pages, status = count_pages_sync(self.file_path)
-        self.signals.finished_one.emit(
-            self.file_path, pages if pages is not None else -1, status
-        )
+        self.signals.finished_one.emit(self.file_path, pages if pages is not None else -1, status)

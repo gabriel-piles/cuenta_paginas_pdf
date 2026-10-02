@@ -137,21 +137,15 @@ class MainWindow(QMainWindow):
             name_item.setData(Qt.ItemDataRole.UserRole, str(p))  # full path, sort-safe
             pages_item = QTableWidgetItem("…")
             pages_item.setData(Qt.ItemDataRole.UserRole, -1)
-            pages_item.setTextAlignment(
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-            )
+            pages_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             # "…" sorts before any page number via numeric sort key below.
             a3_item = QTableWidgetItem("…")
             a3_item.setData(Qt.ItemDataRole.EditRole, -1)  # numeric sort key
-            a3_item.setTextAlignment(
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-            )
+            a3_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             # "…" sorts before any number via numeric sort key below.
             foto_item = QTableWidgetItem("…")
             foto_item.setData(Qt.ItemDataRole.EditRole, -1)  # numeric sort key
-            foto_item.setTextAlignment(
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-            )
+            foto_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             status_item = QTableWidgetItem("Pending…")
             self.table.setItem(i, COL_FILE, name_item)
             self.table.setItem(i, COL_PAGES, pages_item)
@@ -208,9 +202,7 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, COL_PAGES, pages_item)
         pages_item.setText(str(pages))
         pages_item.setData(Qt.ItemDataRole.EditRole, pages)
-        pages_item.setTextAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        )
+        pages_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         pages_item.setFont(bold)
         sheets_item = self.table.item(row, COL_A3)
         if sheets_item is None:
@@ -218,9 +210,7 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, COL_A3, sheets_item)
         sheets_item.setText(str(sheets))
         sheets_item.setData(Qt.ItemDataRole.EditRole, sheets)
-        sheets_item.setTextAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        )
+        sheets_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         sheets_item.setFont(bold)
         foto_item = self.table.item(row, COL_FOTOCOPIAS)
         if foto_item is None:
@@ -228,9 +218,7 @@ class MainWindow(QMainWindow):
             self.table.setItem(row, COL_FOTOCOPIAS, foto_item)
         foto_item.setText(str(sheets * 4))
         foto_item.setData(Qt.ItemDataRole.EditRole, sheets * 4)
-        foto_item.setTextAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        )
+        foto_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         foto_item.setFont(bold)
         status_item = self.table.item(row, COL_STATUS)
         if status_item is None:
