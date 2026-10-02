@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+
+# PyInstaller output
+build/
+dist/
+*.spec
+
+# PyCharm
+.idea/
